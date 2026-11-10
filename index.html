@@ -6,7 +6,7 @@
   <meta charset="UTF-8">
   <meta name="theme-color" content="#d6e8ff">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CBT - Informatika 2026</title>
+  <title>Portal CBT 2026</title>
   
   <!-- 2. Favicon SVG Data-URI yang Sudah Di-encode -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💻%3C/text%3E%3C/svg%3E">
@@ -375,7 +375,7 @@
         </div>
         <div class="info-box">
           <span class="label">MAKS. PERINGATAN</span>
-          <span class="value">⚠️ 3x Toleransi</span>
+          <span class="value">⚠️ 5x Toleransi</span>
         </div>
       </div>
 
@@ -390,7 +390,7 @@
         </div>
         <div class="rules-item">
           <span>•</span>
-          <span>Pelanggaran 3x akan <b>mengunci perangkat HP permanen</b>.</span>
+          <span>Pelanggaran 5x akan <b>mengunci perangkat HP permanen</b>.</span>
         </div>
       </div>
 
@@ -405,7 +405,7 @@
     </div>
   </div>
 
-  <!-- 2. Modal Peringatan Sementara (Pelanggaran 1x s.d. 3x) -->
+  <!-- 2. Modal Peringatan Sementara (Pelanggaran 1x s.d. 5x) -->
   <div id="warningModal" class="overlay hidden">
     <div class="card" style="border-color: #fca5a5;">
       <div style="font-size: 2.2rem; margin-bottom: 6px;">⚠️</div>
@@ -443,7 +443,7 @@
       </svg>
       <div class="header-titles">
         <span class="exam-title">Sumatif Informatika</span>
-        <span class="violation-badge" id="violationText">Pelanggaran: 0/3</span>
+        <span class="violation-badge" id="violationText">Pelanggaran: 0/5</span>
       </div>
     </div>
     <!-- Timer Header 60 Menit -->
@@ -506,7 +506,7 @@
     const FORM_URL = "https://forms.gle/KE1LT3k9kLWbYfzz5"; 
     
     let examDurationMinutes = 60;
-    const maxViolations = 3;
+    const maxViolations = 5;
 
     let timeRemaining = examDurationMinutes * 60;
     let violationCount = 0;
@@ -552,7 +552,7 @@
     }
 
     // ====================================================
-    // 1B. ALARM PELANGGARAN KE-3 (sirine keras + getar)
+    // 1B. ALARM PELANGGARAN KE-5 (sirine keras + getar)
     // Diputar lewat elemen <audio> (jalur "media"), sehingga tetap bunyi walau
     // HP dalam mode senyap/silent. Elemen "dibuka" saat siswa menekan tombol
     // Mulai (syarat browser agar audio boleh diputar otomatis).
