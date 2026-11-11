@@ -324,16 +324,33 @@
     }
 
     iframe {
+      display: block;
       width: 100%;
       height: 100%;
-      min-height: 100%;
+      min-height: 1200px;
       border: none;
-      display: block;
+      background: #fff;
     }
 
-    .hidden {
-      display: none !important;
+    .hidden { display: none !important; }
+
+    /* Responsif HP kecil, tablet, dan laptop */
+    .participant-input { width:100%; padding:13px 14px; margin:0 0 12px; border:1px solid #93c5fd; border-radius:12px; background:#fff; font:600 16px "Plus Jakarta Sans",sans-serif; color:#0f172a; outline:none; }
+    .participant-input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.13); }
+    @media (max-width:600px) {
+      .overlay { padding:12px; align-items:flex-start; }
+      .card { margin:auto 0; padding:22px 16px 16px; border-radius:18px; }
+      .card h1 { font-size:1.2rem; }
+      .info-grid { gap:8px; }
+      .info-box { padding:9px; }
+      header { height:56px; padding:0 10px; }
+      .form-container { top:56px; height:calc(100% - 56px); }
+      .timer-badge { padding:6px 9px; font-size:.82rem; }
+      .exam-title { font-size:.82rem; }
+      .violation-badge { font-size:.62rem; }
     }
+    @media (min-width:601px) and (max-width:1024px) { .card { max-width:460px; } }
+
   </style>
 </head>
 <body>
@@ -393,6 +410,9 @@
           <span>Pelanggaran 5x akan <b>mengunci perangkat HP permanen</b>.</span>
         </div>
       </div>
+
+      <label for="participantCode" style="display:block;text-align:left;font-size:.78rem;font-weight:700;color:#334155;margin:0 0 6px">KODE PESERTA / NIS</label>
+      <input id="participantCode" class="participant-input" type="text" inputmode="text" autocomplete="off" maxlength="40" placeholder="Masukkan kode peserta" aria-label="Kode peserta">
 
       <button class="btn-glow" onclick="startExam()">
         <span>Mulai Mengerjakan</span>
@@ -456,65 +476,23 @@
   </div>
 
   <script>
-    // === KONFIGURASI SISTEM UJIAN ===
-    const EXAM_ID = "INFORMATIKA2026"; // ID unik ujian
-    // Kata sandi pengawas TIDAK disimpan langsung, hanya hash SHA-256 dari "EXAM_ID:kata_sandi".
-    // Untuk mengganti kata sandi: buka halaman ini di browser, tekan F12 > Console, ketik:
-    //   sha256("INFORMATIKA2026:SANDIBARU")
-    // lalu tempel hasilnya ke RESET_HASH di bawah (jika EXAM_ID diubah, ganti juga bagian depan).
-    const RESET_HASH = "4510f5ab8c323e95af541206907f7420b12ee9ca13975a664b9be293b6e4b4f7";
+    // === KONFIGURASI CBT + SUPABASE ===
+    const EXAM_ID = "INFORMATIKA2026";
+    const API_URL = "https://gbrrfdtospczcqzfmddk.supabase.co/functions/v1/cbt-violation";
+	const SUPABASE_ANON_KEY ="sb_publishable_RUPj5lBW2meoJpS0G1Aryg_vzS-P59I";
+    const FORM_URL = "https://forms.gle/GZHkPaTc1GdtUogR8";
+	
 
-    // SHA-256 (JavaScript murni, jalan di HTTP maupun HTTPS)
-    function sha256(ascii){
-      function rr(v,a){return (v>>>a)|(v<<(32-a));}
-      var mw=Math.pow(2,32), result='', words=[], bitLen=ascii.length*8;
-      var hash=sha256.h=sha256.h||[], k=sha256.k=sha256.k||[], pc=k.length, isC={}, i, j;
-      for(var c=2;pc<64;c++){
-        if(!isC[c]){
-          for(i=0;i<313;i+=c) isC[i]=c;
-          hash[pc]=(Math.pow(c,.5)*mw)|0;
-          k[pc++]=(Math.pow(c,1/3)*mw)|0;
-        }
-      }
-      ascii+='\x80';
-      while(ascii.length%64-56) ascii+='\x00';
-      for(i=0;i<ascii.length;i++){
-        j=ascii.charCodeAt(i);
-        if(j>>8) return '';
-        words[i>>2]|=j<<((3-i)%4)*8;
-      }
-      words[words.length]=((bitLen/mw)|0);
-      words[words.length]=(bitLen);
-      for(j=0;j<words.length;){
-        var w=words.slice(j,j+=16), oldHash=hash;
-        hash=hash.slice(0,8);
-        for(i=0;i<64;i++){
-          var w15=w[i-15], w2=w[i-2];
-          var a=hash[0], e=hash[4];
-          var t1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=(i<16)?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
-          var t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
-          hash=[(t1+t2)|0].concat(hash);
-          hash[4]=(hash[4]+t1)|0;
-        }
-        for(i=0;i<8;i++) hash[i]=(hash[i]+oldHash[i])|0;
-      }
-      for(i=0;i<8;i++) for(j=3;j+1;j--){var b=(hash[i]>>(j*8))&255; result+=((b<16)?0:'')+b.toString(16);}
-      return result;
-    }
-
-    // TAUTAN GOOGLE FORM:
-    const FORM_URL = "https://forms.gle/KE1LT3k9kLWbYfzz5"; 
-    
-    let examDurationMinutes = 60;
-    const maxViolations = 5;
-
+    let examDurationMinutes = 60; 
+    let maxViolations = 5;
     let timeRemaining = examDurationMinutes * 60;
     let violationCount = 0;
     let timerInterval = null;
     let isExamActive = false;
     let wakeLockSentinel = null;
+    let cbtSessionId = sessionStorage.getItem("CBT_SESSION_" + EXAM_ID) || null;
+    let serverExpiresAt = null;
 
-    // Elemen DOM
     const startScreen = document.getElementById('startScreen');
     const warningModal = document.getElementById('warningModal');
     const lockScreen = document.getElementById('lockScreen');
@@ -523,33 +501,79 @@
     const violationText = document.getElementById('violationText');
     const warningText = document.getElementById('warningText');
     const frameContainer = document.getElementById('frameContainer');
+    const participantInput = document.getElementById('participantCode');
 
-    // ====================================================
-    // 1. CEK STATUS KUNCI PERANGKAT PERMANEN (LOCAL STORAGE)
-    // ====================================================
-    function checkDeviceLock() {
-      const lockData = localStorage.getItem("CBT_LOCK_" + EXAM_ID);
-      if (lockData) {
-        const parsed = JSON.parse(lockData);
-        showPermanentLockScreen(parsed.reason || "Perangkat Anda telah terkunci secara permanen.");
-        return true;
+    async function cbtRequest(payload) {
+  console.log("CBT REQUEST:", payload);
+
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": "Bearer " + SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify(payload)
+  });
+
+  console.log("HTTP STATUS:", response.status);
+
+  const result = await response.json().catch(() => ({}));
+
+  console.log("CBT RESPONSE:", result);
+
+  if (!response.ok) throw new Error(result.error || "Permintaan CBT gagal.");
+
+  return result;
+}
+	
+    
+
+    function showPermanentLockScreen(message) {
+      startScreen.classList.add('hidden');
+      warningModal.classList.add('hidden');
+      lockMessage.textContent = message;
+      lockScreen.classList.remove('hidden');
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    }
+
+    async function refreshServerStatus() {
+      if (!cbtSessionId) return null;
+      const result = await cbtRequest({ action:"status", session_id:cbtSessionId });
+      const session = result.session;
+      violationCount = Number(session.violation_count || 0);
+      violationText.textContent = `Pelanggaran: ${violationCount}/${maxViolations}`;
+      if (session.status === "locked") {
+        showPermanentLockScreen("Sesi ujian terkunci di server. Hubungi pengawas.");
+        isExamActive = false;
+      } else if (session.status !== "active") {
+        showPermanentLockScreen("Sesi ujian sudah selesai. Hubungi pengawas.");
+        isExamActive = false;
       }
-      return false;
+      serverExpiresAt = new Date(session.expires_at).getTime();
+      return session;
     }
 
-    if (!checkDeviceLock()) {
-      frameContainer.innerHTML = `
-        <iframe 
-          id="examFrame" 
-          src="${FORM_URL}"
-          frameborder="0" 
-          marginheight="0" 
-          marginwidth="0"
-          scrolling="yes">
-          Memuat formulir PSAS...
-        </iframe>
-      `;
+    // Jika browser dimuat ulang, status sesi tetap diambil dari server.
+    if (cbtSessionId) {
+      refreshServerStatus().then(session => {
+        if (session && session.status === "active") {
+          startScreen.classList.add("hidden");
+          isExamActive = true;
+          startTimer();
+        }
+      }).catch(() => {
+        // Jangan membuat sesi baru otomatis jika server gagal dihubungi.
+        startScreen.classList.remove("hidden");
+      });
     }
+
+    // Google Forms ditampilkan langsung di area CBT (seperti file kedua), bukan tombol/tab baru.
+    function mountGoogleForm() {
+      if (document.getElementById("examFrame")) return;
+      frameContainer.innerHTML = `<iframe id="examFrame" title="Formulir Ujian" src="${FORM_URL}" width="100%" height="1200" frameborder="0" marginheight="0" marginwidth="0" scrolling="yes" allow="clipboard-write">Memuat formulir PSAS...</iframe>`;
+    }
+    mountGoogleForm();
 
     // ====================================================
     // 1B. ALARM PELANGGARAN KE-5 (sirine keras + getar)
@@ -627,58 +651,26 @@
     // ====================================================
     // 2. EKSEKUSI KUNCI PERANGKAT PERMANEN
     // ====================================================
-    function lockDevicePermanently(reason, withAlarm) {
+    async function lockDevicePermanently(reason, withAlarm) {
       isExamActive = false;
       clearInterval(timerInterval);
       if (withAlarm) playAlarm();
-
-      localStorage.setItem("CBT_LOCK_" + EXAM_ID, JSON.stringify({
-        locked: true,
-        reason: reason,
-        timestamp: new Date().toISOString()
-      }));
-
       frameContainer.innerHTML = "";
       showPermanentLockScreen(reason);
     }
 
-    function showPermanentLockScreen(message) {
-      startScreen.classList.add('hidden');
-      warningModal.classList.add('hidden');
-      lockMessage.textContent = message;
-      lockScreen.classList.remove('hidden');
-
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      }
-    }
-
-    // ====================================================
-    // 2B. RESET TERSEMBUNYI OLEH PENGAWAS
-    // Ketuk 5x cepat (dalam 4 detik) di pojok kanan atas kartu "Perangkat Dikunci",
-    // lalu masukkan kata sandi pengawas.
-    // ====================================================
-    let secretTaps = 0;
-    let secretTimer = null;
-
+    // RESET SERVER oleh pengawas: ketuk 5x, lalu token dimasukkan secara privat.
+    let secretTaps = 0, secretTimer = null;
     function secretTap() {
-      secretTaps++;
-      clearTimeout(secretTimer);
-      secretTimer = setTimeout(() => { secretTaps = 0; }, 4000);
-
+      secretTaps++; clearTimeout(secretTimer);
+      secretTimer = setTimeout(() => secretTaps = 0, 4000);
       if (secretTaps >= 5) {
-        secretTaps = 0;
-        clearTimeout(secretTimer);
-        stopAlarm(); // pengawas dapat mendiamkan alarm dengan ketukan rahasia
-        const input = prompt("Kata sandi pengawas:");
-        if (input === null) return;
-        if (sha256(EXAM_ID + ":" + input.trim()) === RESET_HASH) {
-          localStorage.removeItem("CBT_LOCK_" + EXAM_ID);
-          alert("Kunci perangkat berhasil dibuka. Halaman akan dimuat ulang.");
-          location.reload();
-        } else {
-          alert("Kata sandi salah.");
-        }
+        secretTaps = 0; clearTimeout(secretTimer); stopAlarm();
+        const token = prompt("Token reset pengawas (jangan dibagikan):");
+        if (!token || !cbtSessionId) return;
+        cbtRequest({action:"reset", session_id:cbtSessionId, reset_token:token})
+          .then(() => { alert("Sesi berhasil direset di server. Halaman dimuat ulang."); location.reload(); })
+          .catch(err => alert(err.message));
       }
     }
 
@@ -686,61 +678,62 @@
     // 3. ALUR UJIAN AKTIF
     // ====================================================
     async function startExam() {
-      prepareAlarm(); // harus dipanggil langsung dari sentuhan tombol Mulai
-      const docEl = document.documentElement;
-      if (docEl.requestFullscreen) {
-        docEl.requestFullscreen().catch(() => {});
-      } else if (docEl.webkitRequestFullscreen) {
-        docEl.webkitRequestFullscreen();
-      }
-
-      // Mencegah layar HP mati/sleep otomatis saat murid mengerjakan
+      const participantCode = participantInput.value.trim();
+      if (!participantCode) { alert("Masukkan kode peserta/NIS terlebih dahulu."); participantInput.focus(); return; }
+      prepareAlarm();
       try {
-        if ('wakeLock' in navigator) {
-          wakeLockSentinel = await navigator.wakeLock.request('screen');
-        }
-      } catch (err) {}
-
-      startScreen.classList.add('hidden');
-      isExamActive = true;
-      startTimer();
+        const startResult = await cbtRequest({action:"start", participant_code:participantCode});
+        cbtSessionId = startResult.session_id;
+        sessionStorage.setItem("CBT_SESSION_" + EXAM_ID, cbtSessionId);
+        serverExpiresAt = new Date(startResult.expires_at).getTime();
+        maxViolations = Number(startResult.max_violations || 5);
+        violationCount = 0;
+        violationText.textContent = `Pelanggaran: 0/${maxViolations}`;
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) docEl.requestFullscreen().catch(() => {});
+        else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+        try { if ('wakeLock' in navigator) wakeLockSentinel = await navigator.wakeLock.request('screen'); } catch (err) {}
+        startScreen.classList.add('hidden');
+        isExamActive = true;
+        startTimer();
+      } catch (err) { alert("Tidak dapat memulai ujian: " + err.message); }
     }
 
     function startTimer() {
-      timerInterval = setInterval(() => {
-        if (timeRemaining <= 0) {
-          clearInterval(timerInterval);
-          lockDevicePermanently("Waktu pengerjaan ujian telah berakhir!");
-          return;
-        }
-
-        timeRemaining--;
-        const minutes = Math.floor(timeRemaining / 60);
-        const seconds = timeRemaining % 60;
-        timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-        if (timeRemaining <= 300) {
-          timerDisplay.classList.add('timer-warning');
-        }
-      }, 1000);
+      clearInterval(timerInterval);
+      const tick = () => {
+        timeRemaining = Math.max(0, Math.ceil((serverExpiresAt - Date.now()) / 1000));
+        const minutes = Math.floor(timeRemaining / 60), seconds = timeRemaining % 60;
+        timerDisplay.textContent = `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+        if (timeRemaining <= 300) timerDisplay.classList.add('timer-warning');
+        if (timeRemaining <= 0) { clearInterval(timerInterval); lockDevicePermanently("Waktu pengerjaan ujian telah berakhir!"); }
+      };
+      tick(); timerInterval = setInterval(tick, 1000);
     }
 
-    function recordViolation(reason) {
-      if (!isExamActive) return;
-
-      violationCount++;
-      violationText.textContent = `Pelanggaran: ${violationCount}/${maxViolations}`;
-
-      if (violationCount >= maxViolations) {
-        lockDevicePermanently(`Akses Dihentikan! Anda telah mencapai batas toleransi (${maxViolations}x) pelanggaran. Ujian dinyatakan selesai.`, true);
-      } else {
-        const sisa = maxViolations - violationCount;
-        warningText.innerHTML = `Terdeteksi: <b>${reason}</b>.<br><br>Pelanggaran ke-<b>${violationCount}</b> dari ${maxViolations}. Sisa kesempatan: <b>${sisa}x</b>. Pada pelanggaran ke-${maxViolations}, ujian langsung berakhir dan tidak dapat dibuka lagi.`;
+    async function recordViolation(reason) {
+      if (!isExamActive || !cbtSessionId) return;
+      try {
+        const result = await cbtRequest({action:"violation", session_id:cbtSessionId, violation_type:String(reason).slice(0,120)});
+        violationCount = Number(result.violation_count);
+        violationText.textContent = `Pelanggaran: ${violationCount}/${result.max_violations}`;
+        if (result.locked || result.status === "locked") {
+          lockDevicePermanently(`Akses dihentikan! Batas ${result.max_violations} pelanggaran tercapai. Hubungi pengawas.`, true);
+        } else {
+          const sisa = result.max_violations - violationCount;
+          warningText.innerHTML = `Terdeteksi: <b>${reason}</b>.<br><br>Pelanggaran ke-<b>${violationCount}</b> dari ${result.max_violations}. Sisa kesempatan: <b>${sisa}x</b>.`;
+          warningModal.classList.remove('hidden');
+        }
+      } catch (err) {
+        // Fail closed: jika server tidak dapat dihubungi, ujian dihentikan sementara.
+        isExamActive = false;
+        warningText.textContent = "Pelanggaran gagal dicatat ke server. Periksa koneksi dan lapor pengawas: " + err.message;
         warningModal.classList.remove('hidden');
       }
     }
 
     function resumeExam() {
+      isExamActive = true;
       warningModal.classList.add('hidden');
 
       const docEl = document.documentElement;
